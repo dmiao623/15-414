@@ -1,0 +1,70 @@
+module Factorial
+
+  use int.Int
+
+  function fact (n : int) : int
+  axiom fact0: fact 0 = 1
+  axiom factn: forall n. n > 0 -> fact n = n * fact (n - 1)
+
+  (*
+  let fact (n : int) : int =
+  ensures { result = fact n }
+    let ref i = 0 in
+    let ref r = 1 in
+    while i < n do
+      invariant { r = fact i }
+      variant { n - i }
+      r <- r * i ;
+      i <- i + 1 ;
+    done ;
+    r
+  *)
+
+  let fact_1 (n : int) : int =
+    let ref i = 0 in
+    let ref r = 1 in
+    while i < n do
+      variant { n - i }
+      r <- r * i ;
+      i <- i + 1 ;
+    done ;
+    r
+
+  let fact_2 (n : int) : int =
+  ensures { true \/ result = fact n }
+    let ref i = 0 in
+    let ref r = 1 in
+    while i < n do
+      invariant { true \/ r = fact i }
+      variant { n - i }
+      r <- r * i ;
+      i <- i + 1 ;
+    done ;
+    r
+
+  let fact_3 (n : int) : int =
+  ensures { n < n -> result = fact n}
+    let ref i = 0 in
+    let ref r = 1 in
+    while i < n do
+      invariant { n < n -> r = fact i }
+      variant { n - i }
+      r <- r * i ;
+      i <- i + 1 ;
+    done ;
+    r
+
+  let fact_4 (n : int) : int =
+  requires { 0 <= n }
+  ensures { result = fact n }
+    let ref i = 0 in
+    let ref r = 1 in
+    while i < n do
+      invariant { 0 <= i <= n }
+      invariant { r = fact i }
+      variant { n - i }
+      i <- i + 1 ;
+      r <- r * i ;
+    done ;
+    r
+end

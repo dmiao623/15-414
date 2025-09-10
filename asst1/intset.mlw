@@ -1,0 +1,117 @@
+module IntSet
+
+  use int.Int
+  use array.Array
+  use ref.Ref
+  use set.Fset as S
+  use option.Option
+
+  (*
+     Integer set with two arrays to track the elements in the set.
+     The slots array tracks the elements in the set, and the used
+     array tracks which slots are used.
+     The capacity tracks the maximum number of elements that can be stored in the set.
+     The full flag tracks whether the set is full, so whether more elements can be added.
+     The model is a set of integers that are in the set.
+  *)
+
+  type intset = {
+    slots: array int ;
+    used: array bool ;
+    capacity: int ;
+    mutable full: bool ;
+    ghost mutable model: S.fset int
+  }
+
+  (*
+    Specify a set of invariants and/or witnesses, sufficient to verify all of the 
+    operations specified below.
+  
+    invariant { ... }
+    invariant { ... }
+    ...
+  *)
+
+  invariant { 0 <= capacity /\ slots.length = capacity /\ used.length = capacity }
+  invariant { full <-> (forall j:int. 0 <= j < capacity -> used[j]) }
+  invariant { forall j. 0 <= j < slots.length -> used[j] -> S.mem slots[j] model }
+  invariant { forall x. S.mem x model -> exists j. 0 <= j < capacity /\ used[j] /\ slots[j] = x }
+  invariant { forall j k. 0 <= j < k < capacity -> used[j] /\ used[k] -> slots[j] <> slots[k] }
+  by { 
+    slots = Array.make 0 0 ;
+    used  = Array.make 0 false ;
+    capacity = 0 ;
+    full = true ;
+    model = S.empty }
+
+  (*
+    DO NOT MODIFY ANY OF THE CODE BELOW THIS POINT
+  *)
+
+  let empty (cap: int) : intset
+  requires { cap > 0 }
+  ensures { result.capacity = cap }
+  ensures { result.model = S.empty }
+  = { slots = Array.make cap 0 ; used = Array.make cap false ; capacity = cap ; full = false ; model = S.empty }
+
+  let function mem (s: intset) (x: int) : bool =
+  ensures { result <-> S.mem x s.model }
+  let ref i = 0 in
+  while i < s.slots.length && ((not s.used[i]) || x <> s.slots[i]) do
+    invariant { 0 <= i <= s.slots.length }
+    invariant { forall k:int. 0 <= k < i -> s.used[k] -> x <> s.slots[k] }
+    variant { s.slots.length - i }
+    i <- i + 1
+  done ;
+  i <> s.slots.length
+
+
+  let add (s: intset) (x: int) : unit
+  requires { not s.full }
+  ensures { s.model = S.add x (old s).model }
+  =
+  if mem s x  then () else (
+    let ref i = 0 in
+    while i < s.slots.length && s.used[i] do
+      invariant { 0 <= i <= s.used.length }
+      invariant { forall k:int. 0 <= k < i -> s.used[k] }
+      invariant { exists k:int. i <= k < s.slots.length /\ not s.used[k] }
+      variant { s.slots.length - i }
+      i <- i + 1
+    done ;
+    assert { not (i = s.slots.length) } ;
+    s.slots[i] <- x ;
+    s.used[i] <- true ;
+    (* Confirm that there is still an available slot *)
+    while i < s.slots.length && s.used[i] do
+      invariant { 0 <= i <= s.slots.length }
+      invariant { forall k:int. 0 <= k < i -> s.used[k] }
+      variant { s.slots.length - i }
+      i <- i + 1
+    done ;
+    if i = s.slots.length then s.full <- true else () ;
+    s.model <- S.add x s.model ;
+    ()
+  )
+
+  let remove (s: intset) (x: int) : unit
+  ensures { s.model = S.remove x (old s).model }
+  ensures { S.mem x (old s).model -> not s.full }
+  =
+  let ref i = 0 in
+  while i < s.slots.length && ((not s.used[i]) || x <> s.slots[i]) do
+    invariant { 0 <= i <= s.slots.length }
+    invariant { forall k:int. 0 <= k < i -> s.used[k] -> x <> s.slots[k] }
+    variant { s.slots.length - i }
+    i <- i + 1
+  done ;
+  if i < s.slots.length then (
+    s.used[i] <- false ;
+    s.full <- false ;
+  ) else () ;
+  s.model <- S.remove x s.model ;
+  ()
+
+end
+
+

@@ -1,0 +1,26 @@
+\documentclass{article}
+\input{preamble}
+
+\begin{document}
+\maketitle
+  
+\ZS{Task 7}
+
+Let $\omega, \nu$ be program states. We can define
+\BI{
+  \item
+    $\omega[\![\mathsf{repeat}\;\alpha\;\mathsf{until}\;Q]\!]^0\nu$ iff $\omega[\![\alpha]\!]\nu$ and $\nu\nvDash Q$
+
+  \item
+    $\omega[\![\mathsf{repeat}\;\alpha\;\mathsf{until}\;Q]\!]^{n+1}\nu$ for $n\geq 0$ iff $\ex \mu$ s.t. $\omega[\![\alpha]\!]\mu$ and $\mu\vDash Q$ and $\mu[\![\mathsf{repeat}\;\alpha\;\mathsf{until}\;Q]\!]^{n}\nu$.
+
+  \item
+    $\omega[\![\mathsf{repeat}\;\alpha\;\mathsf{until}\;Q]\!]\nu$ iff $\ex n\geq 0$ s.t. $\omega[\![\mathsf{repeat}\;\alpha\;\mathsf{until}\;Q]\!]^n\nu$
+}
+
+\ZS{Task 8}
+\BE{
+  \mathsf{repeat}\;\alpha\;\mathsf{until}\;Q \triangleq \alpha;\;\mathsf{while}\; Q\;\alpha
+}
+  
+\end{document}

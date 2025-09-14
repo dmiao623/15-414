@@ -1,0 +1,119 @@
+module Ternary
+
+  use int.Abs
+  use int.EuclideanDivision
+  use int.Int
+  use list.List
+  use list.Length
+
+  type digit = Z0 | P1 | M1
+  let function f (d:digit) : int =
+    match d with Z0 -> 0 | P1 -> 1 | M1 -> -1 end
+
+  type tern = list digit
+  (* least significant digit first *)
+  (* trailing Z0 digits are allowed *)
+
+  predicate value (t:tern) (a:int)
+    axiom value_nil:
+      forall a:int. value Nil a <-> a = 0
+
+    axiom value_cons:
+      forall d:digit. forall ds:tern. forall a:int.
+        value (Cons d ds) a <-> (exists b:int. value ds b /\ a = f d + 3 * b)
+
+    axiom value_unique:
+      forall t:tern. forall a:int. forall b:int.
+        value t a /\ value t b -> a = b
+
+  let rec function to_int (t: tern) : int
+    ensures { value t result }
+  = 
+    match t with
+    | Nil -> 0
+    | Cons d ds -> f d + 3 * to_int ds
+    end
+
+  let rec from_int (a: int) : tern
+    ensures { value result a }
+    variant { abs a }
+  =
+    if a = 0 then Nil else
+    let r = mod a 3 in
+    let q = div a 3 in
+    if r = 0 then Cons Z0 (from_int q)
+    else if r = 1 then Cons P1 (from_int q)
+    else Cons M1 (from_int (q+1))
+
+
+
+  let rec inc (t: tern) : tern
+    ensures { value result (to_int t + 1) }
+    variant { length t }
+  =
+    match t with
+    | Nil -> Cons P1 Nil
+    | Cons d ds ->
+        match d with
+        | Z0 -> Cons P1 ds
+        | M1 -> Cons Z0 ds
+        | P1 -> Cons M1 (inc ds)
+        end
+    end
+
+  let rec dec (t: tern) : tern
+    ensures { value result (to_int t - 1) }
+    variant { length t }
+  =
+    match t with
+    | Nil -> Cons M1 Nil
+    | Cons d ds ->
+        match d with
+        | Z0 -> Cons M1 ds
+        | P1 -> Cons Z0 ds
+        | M1 -> Cons P1 (dec ds)
+        end
+    end
+
+  let digit_of (x: int) : digit =
+    if x = 0 then Z0 else if x = 1 then P1 else M1
+
+  let carry_of (s: int) : int =
+    if s <= -2 then -1 else if s >= 2 then 1 else 0
+
+  let rec plus_c (s: tern) (t: tern) (c: int) : tern
+    requires { -1 <= c <= 1 }
+    ensures { value result (to_int s + to_int t + c) }
+    variant { length s + length t }
+  = 
+    match s with
+    | Nil ->
+       match t with
+       | Nil ->
+           if c = 0 then Nil else if c = 1 then Cons P1 Nil else Cons M1 Nil
+       | Cons d2 ds2 ->
+           let ssum = f d2 + c in
+           let k = carry_of ssum in
+           let dv = ssum - 3 * k in
+           Cons (digit_of dv) (plus_c Nil ds2 k)
+       end
+    | Cons d1 ds1 ->
+       match t with
+       | Nil ->
+           let ssum = f d1 + c in
+           let k = carry_of ssum in
+           let dv = ssum - 3 * k in
+           Cons (digit_of dv) (plus_c ds1 Nil k)
+       | Cons d2 ds2 ->
+           let ssum = f d1 + f d2 + c in
+           let k = carry_of ssum in
+           let dv = ssum - 3 * k in
+           Cons (digit_of dv) (plus_c ds1 ds2 k)
+        end
+    end
+
+  let function plus (s: tern) (t: tern) : tern
+    ensures { value result (to_int s + to_int t) }
+  =
+    plus_c s t 0
+end
